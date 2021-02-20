@@ -328,9 +328,7 @@ class OpSum(Op):
             emb.accumulate_grad(g)
         # --
 
-class OpDot(Op):
-    def __init__(self):
-        raise NotImplementedError
+
 
 class OpTanh(Op):
     def __init__(self):
@@ -421,6 +419,25 @@ class OpAdd(Op):
             if b is not None:
                 b.accumulate_grad(alpha_b * t_add.grad)
         # --
+class OpDot(Op):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, w: Tensor, h: Tensor):
+        arr_dot = xp.dot(w.data, h.data)
+        t_dot = Tensor(arr_dot)
+        self.store_ctx(w=w, h=h, t_dot=t_dot, arr_dot=arr_dot)
+        print('arr_dot:', arr_dot)
+        return t_dot
+
+    def backward(self):
+        w, h, t_dot, arr_dot = self.get_ctx('w', 'h', 't_dot', 'arr_dot')
+        if t_dot.grad is not None:
+            w.accumulate_grad(t_dot.grad.reshape(-1,1).dot(h.data.reshape(-1,1).T))
+            h.accumulate_grad(w.data.T.dot(t_dot.grad))
+
+
+
 
 class OpDropout(Op):
     def __init__(self):
