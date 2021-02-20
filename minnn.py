@@ -49,30 +49,26 @@ class Tensor:
 
     # accumulate grad
     def accumulate_grad(self, g: xp.ndarray) -> None:
-        if isinstance(g, xp.ndarray):
-            if self.grad is None:
-                self.grad = g
-            else:
-                self.grad += g
+        if self.grad is None:
+            self.grad = g
         else:
-            print("Wrong type of g! g is not xp.ndarray!")
+            self.grad += g
+
 
 
     # accumulate grad sparsely; note: only for D2 lookup matrix!
     def accumulate_grad_sparse(self, gs: List[Tuple[int, xp.ndarray]]) -> None:
-        if isinstance(gs, list):
-            if self.grad is None:
-                self.grad = dict()
+        if self.grad is None:
+            self.grad = dict()
 
-            for sgs in gs:
-                widx = sgs[0]
-                arr  = sgs[1]
-                if widx not in self.grad.keys():
-                    self.grad[widx] = arr.copy()
-                else:
-                    self.grad[widx] += arr.copy()
-        else:
-            print("Wrong type of g! g is not sparse grad")
+        for sgs in gs:
+            widx = sgs[0]
+            arr  = sgs[1]
+            if widx not in self.grad.keys():
+                self.grad[widx] = arr.copy()
+            else:
+                self.grad[widx] += arr.copy()
+
 
 
     # get dense grad
