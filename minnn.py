@@ -7,6 +7,8 @@ import math
 import os
 import numpy as np
 
+# Start today!!
+
 # --
 # which *py to use??
 _WHICH_XP = os.environ.get("WHICH_XP", "np")
@@ -47,11 +49,31 @@ class Tensor:
 
     # accumulate grad
     def accumulate_grad(self, g: xp.ndarray) -> None:
-        raise NotImplementedError
+        if isinstance(g, xp.ndarray):
+            if self.grad is None:
+                self.grad = g
+            else:
+                self.grad += g
+        else:
+            print("Wrong type of g! g is not xp.ndarray!")
+
 
     # accumulate grad sparsely; note: only for D2 lookup matrix!
     def accumulate_grad_sparse(self, gs: List[Tuple[int, xp.ndarray]]) -> None:
-        raise NotImplementedError
+        if isinstance(gs, list):
+            if self.grad is None:
+                self.grad = dict()
+
+            for sgs in gs:
+                widx = sgs[0]
+                arr  = sgs[1]
+                if widx not in self.grad.keys():
+                    self.grad[widx] = arr.copy()
+                else:
+                    self.grad[widx] += arr.copy()
+        else:
+            print("Wrong type of g! g is not sparse grad")
+
 
     # get dense grad
     def get_dense_grad(self):
@@ -163,7 +185,8 @@ class Initializer:
 
     @staticmethod
     def xavier_uniform(shape: Sequence[int], gain=1.0):
-        raise NotImplementedError
+        return Initializer.uniform(shape, -1, 1) * math.sqrt(6./(shape[0] + shape[1]))
+
 
 # Model: collection of parameters
 class Model:
@@ -266,7 +289,24 @@ def log_softmax(x: xp.ndarray, axis=-1):
 
 class OpLookup(Op):
     def __init__(self):
-        raise NotImplementedError
+        super().__init__()
+
+    def forward(self, emb: Tensor, indices: List):
+        num_idx = len(indices) # n
+        row_idx = xp.linspace(0,num_idx-1, num_idx) # [0, 1, ..., n-1]
+        lookup = np.zeros((num_idx,num_idx))
+        lookup[row_idx.astype(int), indices] = 1
+        arr_lookup = xp.dot(lookup, emb.data)
+        t_lookup = Tensor(arr_lookup)
+        self.store_ctx(emb=emb, t_lookup=t_lookup, arr_lookup=arr_lookup, lookup=lookup)
+        return t_lookup
+
+    def backward(self):
+        emb , t_lookup , arr_lookup , lookup = self.get_ctx('emb', 't_lookup', 'arr_lookup', 'lookup')
+        if t_lookup.grad is not None:
+            g = xp.dot(xp.transpose(lookup), t_lookup.grad)
+            emb.accumulate_grad(g)
+
 
 class OpSum(Op):
     def __init__(self):
@@ -294,7 +334,21 @@ class OpDot(Op):
 
 class OpTanh(Op):
     def __init__(self):
-        raise NotImplementedError
+        super().__init__()
+
+    def forward(self, t: Tensor):
+        arr_tanh = t.data
+        e2x = np.exp(2 * arr_tanh)
+        arr_tanh = (e2x - 1) / (e2x + 1)
+        t_tanh = Tensor(arr_tanh)
+        self.store_ctx(t=t, t_tanh=t_tanh, arr_tanh=arr_tanh)
+        return t_tanh
+
+    def backward(self):
+        t, t_tanh, arr_tanh = self.get_ctx('t', 't_tanh', 'arr_tanh')
+        if t_tanh.grad is not None:
+            grad_t = (1 - arr_tanh ** 2) * t_tanh.grad
+            t.accumulate_grad(grad_t)
 
 class OpRelu(Op):
     def __init__(self):
