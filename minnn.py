@@ -280,16 +280,20 @@ class MomentumTrainer(Trainer):
 
     def update_sparse(self, p: Parameter, lrate: float, mrate: float):
         print('g:', p.grad)
-        # for widx, arr in p.grad.items():
-        #     p.data[widx] -= lrate * arr
-        print('before m:', self.m_dict[p])
-        self.m_dict[p] = mrate * self.m_dict[p] + (1 - mrate) * p.get_dense_grad()
-        print('after m:', self.m_dict[p])
-        print('before p.data', p.data)
-        # for widx, arr in p.grad.items():
-        #     p.data[widx] -= lrate * self.m_dict[p][widx]
-        p.data -= lrate * self.m_dict[p]
-        print('after p.data', p.data)
+
+        if p.grad is None:
+            self.m_dict[p] = mrate * self.m_dict[p]
+            # print('m', self.m_dict[p])
+            p.data -= lrate * self.m_dict[p]
+        else:
+
+            for widx, arr in p.grad.items():
+                print('Before m', self.m_dict[p])
+                self.m_dict[p] = mrate * self.m_dict[p]
+                self.m_dict[p][widx] += (1 - mrate) * arr
+                print('After m', self.m_dict[p])
+                p.data -= lrate * self.m_dict[p]
+
 
 
 
