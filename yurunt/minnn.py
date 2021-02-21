@@ -249,6 +249,7 @@ class SGDTrainer(Trainer):
 
 class MomentumTrainer(Trainer):
     def __init__(self, model: Model, lrate=0.1, mrate=0.99):
+        print("MOMENTUM!")
         super().__init__(model)
         self.lrate = lrate
         self.mrate = mrate
@@ -261,14 +262,10 @@ class MomentumTrainer(Trainer):
         lrate = self.lrate
         mrate = self.mrate
         for p in self.model.params:
-            # if p.grad is not None:
-            if p.grad is None:
+            if isinstance(p.grad, dict):
                 self.update_sparse(p, lrate, mrate)
             else:
-                if isinstance(p.grad, dict):
-                    self.update_sparse(p, lrate, mrate)
-                else:
-                    self.update_dense(p, lrate, mrate)
+                self.update_dense(p, lrate, mrate)
             p.grad = None
 
     def update_dense(self, p: Parameter, lrate: float, mrate: float):
@@ -278,20 +275,77 @@ class MomentumTrainer(Trainer):
         p.data -= lrate * self.m_dict[p]
 
     def update_sparse(self, p: Parameter, lrate: float, mrate: float):
-        print('g:', p.grad)
+        self.m_dict[p] = mrate * self.m_dict[p]
+        for widx, arr in p.grad.items():
+            self.m_dict[p][widx] += (1 - mrate) * arr
+        p.data -= lrate * self.m_dict[p]
 
-        if p.grad is None:
-            self.m_dict[p] = mrate * self.m_dict[p]
-            # print('m', self.m_dict[p])
-            p.data -= lrate * self.m_dict[p]
-        else:
 
-            for widx, arr in p.grad.items():
-                print('Before m', self.m_dict[p])
-                self.m_dict[p] = mrate * self.m_dict[p]
-                self.m_dict[p][widx] += (1 - mrate) * arr
-                print('After m', self.m_dict[p])
-                p.data -= lrate * self.m_dict[p]
+class AdamTrainer(Trainer):
+    def __init__(self, model: Model, lrate=0.1, beta1=0.9, beta2=0.99, eps=1.e-8):
+        print("ADAM~")
+        super().__init__(model)
+        self.lrate = lrate
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.beta1t = beta1
+        self.beta2t = beta2
+        self.eps = eps
+        self.m_dict = dict() # first moment
+        self.v_dict = dict() # second moment
+        for p in self.model.params:
+            m = p.get_dense_grad()
+            self.m_dict[p] = xp.zeros(m.shape)
+            self.v_dict[p] = xp.zeros(m.shape)
+
+
+    def update(self):
+        for p in self.model.params:
+            if isinstance(p.grad, dict):
+                self.update_sparse(p,)
+            else:
+                self.update_dense(p,)
+            p.grad = None
+
+    def update_dense(self, p: Parameter,):
+        if p not in self.m_dict.keys():
+            self.m_dict[p] = xp.zeros(p.get_dense_grad().shape)
+
+        if p not in self.v_dict.keys():
+            self.v_dict[p] = xp.zeros(p.get_dense_grad().shape)
+
+        self.m_dict[p] = self.beta1 * self.m_dict[p] + (1 - self.beta1) * p.grad
+        self.v_dict[p] = self.beta2 * self.v_dict[p] + (1 - self.beta2) * p.grad * p.grad
+
+        self.beta1t *= self.beta1
+        self.beta2t *= self.beta2
+
+        mhat = self.m_dict[p] / (1 - self.beta1t)
+        vhat = self.v_dict[p] / (1 - self.beta2t)
+
+        p.data -= self.lrate * mhat / (xp.sqrt(vhat) + self.eps)
+
+    def update_sparse(self, p: Parameter):
+        self.m_dict[p] = self.beta1 * self.m_dict[p]
+        self.v_dict[p] = self.beta2 * self.v_dict[p]
+
+        for widx, arr in p.grad.items():
+            self.m_dict[p][widx] += (1 - self.beta1) * p.grad[widx]
+            self.v_dict[p][widx] += (1 - self.beta2) * p.grad[widx] ** 2
+
+        self.beta1t *= self.beta1
+        self.beta2t *= self.beta2
+
+        mhat = self.m_dict[p] / (1 - self.beta1t)
+        vhat = self.v_dict[p] / (1 - self.beta2t)
+
+        p.data -= self.lrate * mhat / (xp.sqrt(vhat) + self.eps)
+
+
+
+
+
+
 
 
 
@@ -378,8 +432,9 @@ class OpTanh(Op):
 
     def forward(self, t: Tensor):
         arr_tanh = t.data
-        e2x = np.exp(2 * arr_tanh)
-        arr_tanh = (e2x - 1) / (e2x + 1)
+        # e2x = xp.exp(2 * arr_tanh)
+        # arr_tanh = (e2x - 1) / (e2x + 1) clip inputs to [-50, 50]
+        arr_tanh = xp.tanh(arr_tanh)
         t_tanh = Tensor(arr_tanh)
         self.store_ctx(t=t, t_tanh=t_tanh, arr_tanh=arr_tanh)
         return t_tanh
