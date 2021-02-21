@@ -65,18 +65,22 @@ def test_momentum_update(test_mn):
     p2 = m1.add_parameters([2,2], 'constant', val=0.)
     # --
     t1 = test_mn.MomentumTrainer(m1, lrate=0.1, mrate=0.9)
-    for _ in range(5):
-        g = np.array([1.,1.])
-        p1.accumulate_grad(g)
-        t1.update()
-    assert is_allclose(p1.data, np.array([-0.131441, -0.131441])), \
-        "This is the values using our implementation, there can be other versions for momentum_update, you can choose to use others!"
+    # for _ in range(5):
+    #     g = np.array([1.,1.])
+    #     p1.accumulate_grad(g)
+    #     t1.update()
+    # assert is_allclose(p1.data, np.array([-0.131441, -0.131441])), \
+    #     "This is the values using our implementation, there can be other versions for momentum_update, you can choose to use others!"
+    # print('pass dense!!')
+    print('g', p2.grad)
     for i in range(6):
+        print('Step ', i + 1)
         g = np.array([1.,1.])
         p2.accumulate_grad_sparse([((i%2), g.copy())])
         t1.update()
     assert is_allclose(p2.data, np.array([[-0.1002459, -0.1002459], [-0.078051, -0.078051]])), \
         "This is the values using our implementation, there can be other versions for momentum_update, you can choose to use others!"
+    print('pass sparse!!')
     # --
 
 def test_lookup(test_mn):
@@ -87,14 +91,25 @@ def test_lookup(test_mn):
     v.op.backward()
     assert is_allclose(t.get_dense_grad(), np.asarray([[1., 1.], [3., 4.], [0., 0.]]))
 
+# def test_dot(test_mn):
+#     w, h = test_mn.astensor([[0., 1.], [2., 3.]]), test_mn.astensor([1., 2.])
+#     v = test_mn.dot(w, h)
+#     assert is_allclose(v.data, np.asarray([2., 8.]))
+#     v.accumulate_grad(np.asarray([1., 1.]))
+#     v.op.backward()
+#     assert is_allclose(w.get_dense_grad(), np.asarray([[1.,2.],[1.,2.]]))
+#     assert is_allclose(h.get_dense_grad(), np.asarray([2.,4.]))
+
 def test_dot(test_mn):
     w, h = test_mn.astensor([[0., 1.], [2., 3.]]), test_mn.astensor([1., 2.])
     v = test_mn.dot(w, h)
     assert is_allclose(v.data, np.asarray([2., 8.]))
-    v.accumulate_grad(np.asarray([1., 1.]))
+    v.accumulate_grad(np.asarray([1., 3.]))
     v.op.backward()
-    assert is_allclose(w.get_dense_grad(), np.asarray([[1.,2.],[1.,2.]]))
-    assert is_allclose(h.get_dense_grad(), np.asarray([2.,4.]))
+    assert is_allclose(w.get_dense_grad(), np.asarray([[1.,2.],[3.,6.]]))
+    assert is_allclose(h.get_dense_grad(), np.asarray([6.,10.]))
+
+
 
 def test_tanh(test_mn):
     x = test_mn.astensor([0., 1., 2., 3.])
@@ -111,13 +126,16 @@ def main(minnn: str):
     # --
     # note: to change weights in this table
     test_table = [
-        ("accumulate_grad", 1.,),
-        ("accumulate_grad_sparse", 1.,),
-        ("xavier_uniform", 1.,),
-        ("momentum_update", 1.),
+        # # ("accumulate_grad", 1.,),
+        # ("accumulate_grad_sparse", 1.,),
+        # ("xavier_uniform", 1.,),
         ("lookup", 1.),
-        ("dot", 1.),
-        ("tanh", 1.),
+        # ("tanh", 1.),
+
+        # ("momentum_update", 1.),
+
+        # ("dot", 1.),
+
     ]
     for name, weight in test_table:
         test_f = globals()[f"test_{name}"]
@@ -138,6 +156,6 @@ def eval_acc(f1: str, f2: str):
 # --
 
 if __name__ == '__main__':
-    # main("minnn.py")
+    main("yurunt/minnn.py")
     import sys
-    main(*sys.argv[1:])
+    # main(*sys.argv[1:])
