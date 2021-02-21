@@ -389,8 +389,8 @@ class OpLookup(Op):
 
     def forward(self, emb: Tensor, indices: List):
         num_idx = len(indices) # n
-        row_idx = np.arange(len(indices))
-        lookup = np.zeros((num_idx,emb.shape[0]))
+        row_idx = xp.arange(len(indices))
+        lookup = xp.zeros((num_idx,emb.shape[0]))
         lookup[row_idx.astype(int), indices] = 1
         arr_lookup = lookup.dot(emb.data)
         t_lookup = Tensor(arr_lookup)
