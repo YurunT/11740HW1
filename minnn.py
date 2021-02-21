@@ -249,7 +249,50 @@ class SGDTrainer(Trainer):
 
 class MomentumTrainer(Trainer):
     def __init__(self, model: Model, lrate=0.1, mrate=0.99):
-        raise NotImplementedError
+        super().__init__(model)
+        self.lrate = lrate
+        self.mrate = mrate
+        self.m_dict = dict()
+        for p in self.model.params:
+            m = p.get_dense_grad()
+            self.m_dict[p] = xp.zeros(m.shape)
+
+
+        # m < - mrate * m + (1 - mrate) * g, p < - p - lrate * m
+
+    def update(self):
+        lrate = self.lrate
+        mrate = self.mrate
+        for p in self.model.params:
+            # if p.grad is not None:
+            if p.grad is None:
+                self.update_sparse(p, lrate, mrate)
+            else:
+                if isinstance(p.grad, dict):
+                    self.update_sparse(p, lrate, mrate)
+                else:
+                    self.update_dense(p, lrate, mrate)
+            p.grad = None
+
+    def update_dense(self, p: Parameter, lrate: float, mrate: float):
+        self.m_dict[p] = mrate * self.m_dict[p] + (1 - mrate) * p.grad
+        p.data -= lrate * self.m_dict[p]
+
+    def update_sparse(self, p: Parameter, lrate: float, mrate: float):
+        print('g:', p.grad)
+        # for widx, arr in p.grad.items():
+        #     p.data[widx] -= lrate * arr
+        print('before m:', self.m_dict[p])
+        self.m_dict[p] = mrate * self.m_dict[p] + (1 - mrate) * p.get_dense_grad()
+        print('after m:', self.m_dict[p])
+        print('before p.data', p.data)
+        # for widx, arr in p.grad.items():
+        #     p.data[widx] -= lrate * self.m_dict[p][widx]
+        p.data -= lrate * self.m_dict[p]
+        print('after p.data', p.data)
+
+
+
 
 # --
 
@@ -423,7 +466,6 @@ class OpDot(Op):
         arr_dot = xp.dot(w.data, h.data)
         t_dot = Tensor(arr_dot)
         self.store_ctx(w=w, h=h, t_dot=t_dot, arr_dot=arr_dot)
-        print('arr_dot:', arr_dot)
         return t_dot
 
     def backward(self):
