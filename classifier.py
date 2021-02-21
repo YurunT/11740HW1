@@ -68,8 +68,8 @@ def main():
 
     # Create a model (collection of parameters)
     model = mn.Model()
-    # trainer = mn.MomentumTrainer(model, lrate=args.lrate, mrate=args.mrate)
-    trainer = mn.AdamTrainer(model, lrate=args.lrate,)
+    trainer = mn.MomentumTrainer(model, lrate=args.lrate, mrate=args.mrate)
+    # trainer = mn.AdamTrainer(model, lrate=args.lrate,)
     # Define the model
     EMB_SIZE = args.emb_size
     HID_SIZE = args.hid_size
