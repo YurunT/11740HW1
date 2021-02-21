@@ -257,9 +257,6 @@ class MomentumTrainer(Trainer):
             m = p.get_dense_grad()
             self.m_dict[p] = xp.zeros(m.shape)
 
-
-        # m < - mrate * m + (1 - mrate) * g, p < - p - lrate * m
-
     def update(self):
         lrate = self.lrate
         mrate = self.mrate
@@ -275,6 +272,8 @@ class MomentumTrainer(Trainer):
             p.grad = None
 
     def update_dense(self, p: Parameter, lrate: float, mrate: float):
+        if p not in self.m_dict.keys():
+            self.m_dict[p] = xp.zeros(p.get_dense_grad().shape)
         self.m_dict[p] = mrate * self.m_dict[p] + (1 - mrate) * p.grad
         p.data -= lrate * self.m_dict[p]
 
@@ -336,8 +335,8 @@ class OpLookup(Op):
 
     def forward(self, emb: Tensor, indices: List):
         num_idx = len(indices) # n
-        row_idx = xp.linspace(0,num_idx-1, num_idx) # [0, 1, ..., n-1]
-        lookup = np.zeros((num_idx,num_idx))
+        row_idx = np.arange(len(indices))
+        lookup = np.zeros((num_idx,emb.shape[0]))
         lookup[row_idx.astype(int), indices] = 1
         arr_lookup = xp.dot(lookup, emb.data)
         t_lookup = Tensor(arr_lookup)
