@@ -1,7 +1,7 @@
 from collections import defaultdict
 import time
 import random
-import minnn as mn
+from yurunt import minnn as mn
 import numpy as np
 import argparse
 
@@ -23,7 +23,7 @@ def get_args():
     parser.add_argument("--emb_drop", type=float, default=0.333)
     parser.add_argument("--hid_drop", type=float, default=0.333)
     parser.add_argument("--iters", type=int, default=20)
-    parser.add_argument("--lrate", type=float, default=0.01)
+    parser.add_argument("--lrate", type=float, default=0.0001)
     parser.add_argument("--lrate_decay", type=float, default=1.)  # 1. means no decay!
     parser.add_argument("--mrate", type=float, default=0.85)
     parser.add_argument("--accu_step", type=int, default=10)  # this is actually batch size!
