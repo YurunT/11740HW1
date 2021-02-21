@@ -1,7 +1,7 @@
 from collections import defaultdict
 import time
 import random
-from yurunt import minnn as mn
+import minnn as mn
 import numpy as np
 import argparse
 

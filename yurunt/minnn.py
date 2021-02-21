@@ -392,7 +392,7 @@ class OpLookup(Op):
         row_idx = np.arange(len(indices))
         lookup = np.zeros((num_idx,emb.shape[0]))
         lookup[row_idx.astype(int), indices] = 1
-        arr_lookup = xp.dot(lookup, emb.data)
+        arr_lookup = lookup.dot(emb.data)
         t_lookup = Tensor(arr_lookup)
         self.store_ctx(emb=emb, t_lookup=t_lookup, arr_lookup=arr_lookup, lookup=lookup)
         return t_lookup
@@ -400,7 +400,7 @@ class OpLookup(Op):
     def backward(self):
         emb , t_lookup , arr_lookup , lookup = self.get_ctx('emb', 't_lookup', 'arr_lookup', 'lookup')
         if t_lookup.grad is not None:
-            g = xp.dot(xp.transpose(lookup), t_lookup.grad)
+            g = lookup.transpose().dot(t_lookup.grad)
             emb.accumulate_grad(g)
 
 
