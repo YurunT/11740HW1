@@ -58,6 +58,7 @@ def main():
     UNK = w2i["<unk>"]
 
     def load_pretrain(fname, word_num,):
+        print('load_pretrain~')
         data = load_vectors(fname)
         pre_emb_list = []
         for widx in range(word_num):
@@ -66,6 +67,8 @@ def main():
                 pre_emb = list(data[token])
             pre_emb_list.append(pre_emb)
         emb_data = np.asarray(pre_emb_list)
+        print(emb_data.shape)
+        print(emb_data)
         return emb_data
 
     def read_dataset(filename):
