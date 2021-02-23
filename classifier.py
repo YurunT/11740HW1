@@ -59,19 +59,22 @@ def main():
 
     def load_pretrain(fname, word_num, emb_data):
         print('load_pretrain~')
-        data = load_vectors(fname)
         pre_emb_list = []
         for widx in range(word_num):
             token = i2w[widx]
+            data = load_vectors(fname)
             if token in data.keys():
                 pre_emb = list(data[token])
-                pre_emb_list.append(pre_emb)
+                if len(pre_emb) == 0:
+                    pre_emb_list.append(emb_data[widx])
+                else:
+                    pre_emb_list.append(pre_emb)
             else:
                 pre_emb_list.append(emb_data[widx])
         emb_data = np.asarray(pre_emb_list)
         print(type(emb_data))
         print(emb_data.shape)
-        print(emb_data)
+        #     print(emb_data)
         return emb_data
 
     def read_dataset(filename):
