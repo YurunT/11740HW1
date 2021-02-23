@@ -65,8 +65,10 @@ def main():
             token = i2w[widx]
             if token in data.keys():
                 pre_emb = list(data[token])
-                pre_emb_list.append(pre_emb)
-        emb_data = np.ndarray(pre_emb_list)
+                print(pre_emb)
+                print(np.asarray(pre_emb))
+                pre_emb_list.append(np.asarray(pre_emb))
+        emb_data = np.asarray(pre_emb_list).reshape(word_num,-1)
         print(type(emb_data))
         print(emb_data.shape)
         print(emb_data)
