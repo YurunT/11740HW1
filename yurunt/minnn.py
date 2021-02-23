@@ -201,12 +201,12 @@ class Model:
         xp.savez(path, **data)
 
     def load(self, path: str):
-        data0 = xp.load(path)
+        data0 = np.load(path)
         data = {int(n[1:]):d for n,d in data0.items()}
         for i,p in enumerate(self.params):
             d = data[i]
             assert d.shape == p.shape
-            p.data = d
+            p.data = xp.array(d)
 
 # Trainer
 class Trainer:

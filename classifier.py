@@ -3,6 +3,7 @@ import time
 import random
 from yurunt import minnn as mn
 import numpy as np
+import cupy as cp
 import argparse
 import io
 
@@ -71,7 +72,7 @@ def main():
                     pre_emb_list.append(pre_emb)
             else:
                 pre_emb_list.append(emb_data[widx])
-        emb_data = np.asarray(pre_emb_list)
+        emb_data = cp.asarray(pre_emb_list)
         print(type(emb_data))
         print(emb_data.shape)
         #     print(emb_data)
