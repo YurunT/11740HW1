@@ -57,7 +57,7 @@ def main():
     t2i = defaultdict(lambda: len(t2i))
     UNK = w2i["<unk>"]
 
-    def load_pretrain(fname, word_num,):
+    def load_pretrain(fname, word_num, emb_data):
         print('load_pretrain~')
         data = load_vectors(fname)
         pre_emb_list = []
@@ -65,7 +65,9 @@ def main():
             token = i2w[widx]
             if token in data.keys():
                 pre_emb = list(data[token])
-                pre_emb_list.append(np.asarray(pre_emb))
+                pre_emb_list.append(pre_emb)
+            else:
+                pre_emb_list.append(emb_data[widx])
         emb_data = np.asarray(pre_emb_list)
         print(type(emb_data))
         print(emb_data.shape)
@@ -104,12 +106,18 @@ def main():
         trainer = mn.MomentumTrainer(model, lrate=args.lrate, mrate=args.mrate)
 
     # Define the model
-    EMB_SIZE = args.emb_size
-    HID_SIZE = args.hid_size
+    if args.pretrain == 'y':
+        EMB_SIZE = 300
+        HID_SIZE = 300
+    else:
+        EMB_SIZE = args.emb_size
+        HID_SIZE = args.hid_size
+
+
     HID_LAY = args.hid_layer
     W_emb = model.add_parameters((nwords, EMB_SIZE))  # Word embeddings
     if (args.pretrain == 'y'):
-        W_emb.data = load_pretrain('wiki-news-300d-1M.vec', nwords,)
+        W_emb.data = load_pretrain('wiki-news-300d-1M.vec', nwords, W_emb.data)
     W_h = [model.add_parameters((HID_SIZE, EMB_SIZE if lay == 0 else HID_SIZE), initializer='xavier_uniform') for lay in range(HID_LAY)]
     b_h = [model.add_parameters((HID_SIZE)) for lay in range(HID_LAY)]
     W_sm = model.add_parameters((ntags, HID_SIZE), initializer='xavier_uniform')  # Softmax weights
