@@ -4,6 +4,7 @@ import random
 from yurunt import minnn as mn
 import numpy as np
 import argparse
+import io
 
 # --
 random.seed(12345)
@@ -13,6 +14,8 @@ np.random.seed(12345)
 # --
 def get_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--pretrain", type=str, default="n")
+    parser.add_argument("--optimizer", type=str, default="momentum")
     parser.add_argument("--train", type=str, default="data/sst-train.txt")
     parser.add_argument("--dev", type=str, default="data/sst-dev.txt")
     parser.add_argument("--test", type=str, default="data/sst-test.txt")
@@ -35,6 +38,17 @@ def get_args():
     print(f"RUN: {vars(args)}")
     return args
 
+
+def load_vectors(fname):
+    fin = io.open(fname, 'r', encoding='utf-8', newline='\n', errors='ignore')
+    n, d = map(int, fin.readline().split())
+    data = {}
+    for line in fin:
+        tokens = line.rstrip().split(' ')
+        data[tokens[0]] = map(float, tokens[1:])
+    return data
+
+
 def main():
     args = get_args()
     # --
@@ -42,6 +56,18 @@ def main():
     w2i = defaultdict(lambda: len(w2i))
     t2i = defaultdict(lambda: len(t2i))
     UNK = w2i["<unk>"]
+
+    def load_pretrain(fname, word_num,):
+        data = load_vectors(fname)
+        pre_emb_list = []
+        for widx in range(word_num):
+            token = i2w[widx]
+            if token in data.keys():
+                pre_emb = list(data[token])
+            pre_emb_list.append(pre_emb)
+        emb_data = np.asarray(pre_emb_list)
+        return emb_data
+
     def read_dataset(filename):
         with open(filename, "r") as f:
             for line in f:
@@ -68,13 +94,18 @@ def main():
 
     # Create a model (collection of parameters)
     model = mn.Model()
-    # trainer = mn.MomentumTrainer(model, lrate=args.lrate, mrate=args.mrate)
-    trainer = mn.AdamTrainer(model, lrate=args.lrate,)
+    if (args.optimizer == 'adam'):
+        trainer = mn.AdamTrainer(model, lrate=args.lrate, )
+    if (args.optimizer == 'momentum'):
+        trainer = mn.MomentumTrainer(model, lrate=args.lrate, mrate=args.mrate)
+
     # Define the model
     EMB_SIZE = args.emb_size
     HID_SIZE = args.hid_size
     HID_LAY = args.hid_layer
     W_emb = model.add_parameters((nwords, EMB_SIZE))  # Word embeddings
+    if (args.pretrain == 'y'):
+        W_emb.data = load_pretrain('wiki-news-300d-1M.vec', nwords,)
     W_h = [model.add_parameters((HID_SIZE, EMB_SIZE if lay == 0 else HID_SIZE), initializer='xavier_uniform') for lay in range(HID_LAY)]
     b_h = [model.add_parameters((HID_SIZE)) for lay in range(HID_LAY)]
     W_sm = model.add_parameters((ntags, HID_SIZE), initializer='xavier_uniform')  # Softmax weights
