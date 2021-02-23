@@ -66,7 +66,7 @@ def main():
             if token in data.keys():
                 pre_emb = list(data[token])
                 pre_emb_list.append(np.asarray(pre_emb))
-        emb_data = np.asarray(pre_emb_list).reshape(word_num,-1)
+        emb_data = np.asarray(pre_emb_list)
         print(type(emb_data))
         print(emb_data.shape)
         print(emb_data)
