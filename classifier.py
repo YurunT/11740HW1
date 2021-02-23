@@ -67,15 +67,11 @@ def main():
             if token in data.keys():
                 pre_emb = list(data[token])
                 if len(pre_emb) == 0:
-                    pre_emb_list.append(emb_data[widx])
+                    emb_data[widx] = emb_data[widx]
                 else:
-                    pre_emb_list.append(pre_emb)
+                    emb_data[widx] = cp.asarray(pre_emb)
             else:
-                pre_emb_list.append(emb_data[widx])
-        emb_data = cp.asarray(pre_emb_list)
-        print(type(emb_data))
-        print(emb_data.shape)
-        #     print(emb_data)
+                emb_data[widx] = emb_data[widx]
         return emb_data
 
     def read_dataset(filename):
